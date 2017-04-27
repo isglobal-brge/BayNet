@@ -1,0 +1,24 @@
+export(
+	"average",
+	"bestBN",
+	"bestOrder",
+	"BNsampler",
+	"extractBN",
+	"extractOrder",
+	"greedySearch",
+	"orderMCMC",
+	"structureMCMC"
+)
+
+S3method(plot, bma)
+S3method(plot, BN)
+S3method(plot, OrChain)
+S3method(plot, StChain)
+S3method(print, bma)
+S3method(print, BN)
+S3method(print, GrChain)
+S3method(print, OrChain)
+S3method(print, Order)
+S3method(print, sampledBN)
+S3method(print, StChain)
+S3method(summary, GrChain)

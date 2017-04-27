@@ -1,0 +1,9 @@
+BNsampler               Bayesian Network Sampler
+average                 Bayesian Model Averaging
+bestBN                  Extract Bayesian Network
+bestOrder               Extract order from order chain
+coronary                Coronary Heart Disease data set
+greedySearch            Greedy Search algorithm
+nursery                 Nursery data
+orderMCMC               Order Markov Chain Monte Carlo
+structureMCMC           Structure Markov Chain Monte Carlo

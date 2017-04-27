@@ -1,0 +1,225 @@
+\SweaveOpts{prefix.string=images/grafic, keep.source=true}
+\documentclass[a4paper]{article}
+
+%\usepackage{hyperref}
+%\usepackage{graphicx}
+%\usepackage{longtable}
+\usepackage{Sweave}
+\usepackage{url}
+
+\newcommand{\R}{\textsf{R}}
+\newcommand{\BayNet}{\textsf{BayNet}}
+
+\title{\textbf{BayNet}: structure discovery with Bayesian Networks}
+
+\author{Mikel Esnaola\\
+\texttt{mesnaola@creal.cat}
+\and
+Juan Ram\'on Gonz\'alez\\
+\texttt{jrgonzalez@creal.cat}
+\and 
+\texttt{http://www.creal.cat/jrgonzalez/software.htm}}
+
+
+\begin{document}
+
+%\VignetteIndexEntry{BayNet User's Guide}
+
+\maketitle
+
+\section{Introduction}
+This document gives an introduction and overview of the \R~package \BayNet, which provides search methods based on Bayesian Networks for discovering structural dependencies from data. The routines can be applied to discrete multinomial data without missing values.
+
+\section{Getting started}
+
+In order to get the best Bayesian Network plots, the \textsf{Rgraphviz}~Bioconductor package has been used along with the \textsf{SparseM} package. The last of them can be found at the CRAN repositories and can be easily installed.
+
+The \textsf{Rgraphviz}~package needs an \R~independent program called \textsf{graphviz}. Linux users can easily install it because it can be found in most of the public repositories. For example, if we use a Debian based OS (as Ubuntu), we can install it running the command \textsf{apt-get install graphviz}, and if we use a Red Hat based OS (as Fedora or CentOS), we can install it running \textsf{yum install graphviz}. 
+
+If we use Windows, this installation is more difficult. The \textsf{graphviz}~program can be downloaded from \url{http://www.graphviz.org/Download_windows.php}. In the \emph{README} file of the \textsf{Rgraphviz}~package it can be found a step by step explanation of the installation. Anyway, as the installation process is quite difficult, a normal plot function has been included. 
+
+\section{Data}
+
+In order to illustrate how to use the \textsf{BayNet}~package we will be using the \textsf{coronary}~dataset, which is also included in the package. We can load this dataset using the following instruction.
+
+<<>>=
+library(BayNet)
+data(coronary)
+@
+
+The \textsf{coronary}~dataset contains information about 6 variables considered to be probable risk factors for coronary trombosis: \emph{smoking, M. Work} (strenuous mental work), \emph{P. Work} (strenuous physical work), \emph{pressure} (systolic blood pressure), \emph{proteins} (ratio of beta and alpha lipoproteins) and \emph{family} (family anamnesis of coronary heart disease).  All variables are categorical with two levels. For more information about the levels of each variable and their distribution:
+
+<<>>=
+summary(coronary)
+@
+
+\section{Greedy Search}
+
+The Greedy Search is a fast heuristic method. It starts with an initial random Bayesian Network and iteratively finds the best perturbation (the one that most improves the score) until all perturbations lead to a worse Bayesian Network. The function that performs this algorithm is \textsf{greedySearch}. The arguments of this function are \textsf{data}, \textsf{Niter}~(number of algorithm iterations to perform) and \textsf{verbose}~(should additional information be displayed?, default is \textsf{FALSE}).
+
+<<echo=FALSE,results=hide>>=
+set.seed(1)
+load("image")
+@
+
+<<>>=
+gr <- greedySearch(data=coronary,Niter=5)
+@
+
+After fitting the model we can obtain different information about the best (or other) Bayesian Network using the generic \R~functions \textsf{print}, \textsf{summary} and \textsf{plot}.
+
+
+<<>>=
+gr
+@
+
+The \textsf{print}~method shows information about the number of iterations performed by the algorithm, the best Bayesian Network's model\footnote{The interpretation of the model is the following: each local node is represented between brackets with its parents. If a node $X$ has no parents then it appears alone [$X$], if a node $X$ has $n$ parents $Y_1,Y_2,\ldots,Y_n$ then it appears first $X$ and then its parents [$X:Y_1,Y_2,\ldots,Y_n$].}, score and adjacency matrix\footnote{The adjacency matrix is a binary matrix. Each row represents the sons of the corresponding node. Likewise, each column represents the parents of the corresponding node. For instance, looking at the first row (\textsf{Smoking}) we can see that this variable has no sons in the best Bayesian Network found by Greedy Search. Looking at the first column we can also see that all variables are parents of \textsf{Smoking} variable.}; and a common summary of the scores of all iterations' results. 
+
+<<>>=
+summary(gr)
+@
+
+The summary shows the best networks (up to 10) obtained by the Greedy Search algorithm along with their scores and models.
+
+<<>>=
+gr.best <- bestBN(gr)
+@
+
+<<eval=FALSE>>=
+plot(gr.best)
+@
+
+\begin{figure}[h]
+ \centering
+\includegraphics[width=11cm]{plot1.pdf}
+\end{figure}
+
+\section{Structure MCMC}
+
+The Structure MCMC is a Metropolis-Hastings random walk in the Bayesian Network space. It allows to obtain the posterior distribution of the Bayesian Networks given the data, but when the number of variables is big (more than 14-15) it can have convergence problems. Once we obtain the posterior distribution we can extract the best Bayesian Network (or another one) as we did previously, or we can average over the posterior distribution.
+
+The function to perform this algorithm is the \textsf{structureMCMC}. Its arguments are \textsf{data}, \textsf{K}~(maximum number of parents per node, default is 3), \textsf{Nchain}~(number of chains, i.e., number of independent algorithm runs, default is 1), \textsf{Niter}~(number of iterations per chain, default is $10^5$), \textsf{thin}~(sampling interval, default is $\textsf{Niter}/1000$), \textsf{burn}~(number of initial discarded iterations, default is $2\cdot\textsf{Niter}/1000$) and \textsf{verbose}~(should information be displayed?, default is \textsf{FALSE}).
+
+<<eval=FALSE>>=
+st <- structureMCMC(data=coronary,Nchain=6,Niter=1e5)
+@
+
+\noindent First of all, we can check convergence by plotting every chain's scores. 
+
+<<eval=FALSE>>=
+plot(st)
+@
+
+
+\begin{figure}[h]
+ \centering
+\includegraphics[width=8cm]{plot2.pdf}
+\end{figure}
+
+The last graphic represents the progress of each chain's score. It allows us to check the mixing rate of all chains. As previously, we can also extract the 
+Bayesian Network we wish, or directly get the best one. 
+
+<<>>=
+st.best <- bestBN(st)
+st.best
+@
+
+If we wanted to extract a particular Bayesian Network from a certain chain we can do it using the \textsf{extractBN}~function, which has arguments \textsf{chain}~(result of one of the search methods), \textsf{bn}~(an integer representing which Bayesian Network we want to extract) adn \textsf{c}~(an integer representing the chain from which we want to extract the Bayesian Network).
+
+
+<<eval=FALSE>>=
+plot(st.best)
+@
+
+\begin{figure}[h]
+ \centering
+\includegraphics[width=11cm]{plot3.pdf}
+\end{figure}
+
+Anyway, using a single estimate of the whole posterior distribution is a huge loss of information. If we only use the best Bayesian Network and there are another ones with similar scores it is much better to average over all of them. This can be done by the means of Bayesian Model Averaging. This technique allows us to extract much more information and get as result the probability of each possible edge. To do so we can use the \textsf{average}~function, which has arguments \textsf{chain}~(result of a MCMC search method), \textsf{p}~(a number between 0 and 100 representing the percentage of the posterior distribution we want to incorporate in the average) and \textsf{k}~(an integer representing which chain we want to average from)
+
+<<>>=
+av <- average(chain=st,p=50,k=1)
+av
+@
+
+The \textsf{print}~method shows the adjacency matrix with each possible edge's probability after averaging. It also shows a brief summary of the distribution of the not-null edges. There is an specific plot method for the averaged Bayesian Networks. It shows the strength of every edge, where the strength is its frequency in the selected subset of the posterior distribution.
+
+<<eval=FALSE>>=
+plot(av)
+@
+
+\begin{figure}[h]
+ \centering
+\includegraphics[width=11cm]{plot4.pdf}
+\end{figure}
+
+\newpage
+
+\section{Order MCMC}
+
+The Order MCMC performs also a Metropolis-Hastings random walk, but instead of searching in the Bayesian Network space, it searchs in the topological order space. This algorithm allows more variables than the Structure MCMC, but its results are not Bayesian Networks. As a result, another process is needed after obtaining the posterior distribution of orders.
+
+This algorithm can be executed using the \textsf{orderMCMC}~function, which has arguments \textsf{data}, \textsf{K}~(maximum number of parents per node, default is 3), \textsf{Nchain}~(number of chains, i.e., number of independent algorithm runs, default is 1), \textsf{Niter}~(number of iterations per chain, default is $10^4$), \textsf{thin}~(sampling interval, default is $\textsf{Niter}/100$), \textsf{burn}~(number of initial discarded iterations, default is $2\cdot\textsf{Niter}/10$) and \textsf{verbose}~(should information be displayed?, default is \textsf{FALSE}).
+
+<<eval=FALSE>>=
+or <- orderMCMC(data=coronary,Nchain=6,Niter=1e4)
+@
+
+<<>>=
+or
+@
+
+\noindent The \textsf{print}'s result is similar to the one obtained with the Structure MCMC, but this time the best orders for each chain are listed. It is also convenient to see if the chains have mixed in order to check convergence.
+
+<<eval=FALSE>>=
+plot(or)
+@
+
+\begin{figure}[h]
+ \centering
+\includegraphics[width=8cm]{plot5.pdf}
+\end{figure}
+
+Once we obtain the posterior distribution of orders we can extract the best one and sample random graphs from it. We can do this using the \textsf{BNsampler}~function, which has arguments \textsf{order}~(the order to sample from), \textsf{ngraphs}~(integer representing the number of graphs to be sampled) and \textsf{K}~(maximum numer of parents allowed for the sampled graphs, default is the same number as the one used in the \textsf{orderMCMC} process).
+
+<<>>=
+or.best <- bestOrder(or)
+or.best
+or.best.s <- BNsampler(order=or.best, ngraphs=10)
+or.best.s
+@
+
+We can extract the best (or another) Bayesian Network of the sampled graphs.
+
+<<>>=
+or.best.s.best <- bestBN(or.best.s)
+or.best.s.best
+@
+
+<<eval=FALSE>>=
+plot(or.best.s.best)
+@
+
+\begin{figure}[h]
+ \centering
+\includegraphics[width=12cm]{plot6.pdf}
+\end{figure}
+
+Another way of passing from orders to graphs is averaging directly to obtain the probability of each edge. 
+
+<<>>=
+or.av <- average(or,p=50,k=1)
+or.av
+@
+<<eval=FALSE>>=
+plot(or.av)
+@
+
+\begin{figure}[h]
+ \centering
+\includegraphics[width=12cm]{plot7.pdf}
+\end{figure}
+
+\end{document}
+
